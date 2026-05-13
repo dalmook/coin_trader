@@ -1,57 +1,79 @@
 # coin_trader
 
-업비트(Upbit) 기준으로 **다양한 전략 백테스트 + 결과 분석 + 자동투자 템플릿**을 바로 돌려볼 수 있게 구성했습니다.
+## 핵심
+- `src/upbit_backtest.py`: 전략 백테스트 + 결과 CSV 생성
+- `src/upbit_live_trader.py`: 실거래/모의거래 봇 (운영형 가드 포함)
 
-## 포함된 코드
+## 운영형 가드(적용됨)
+- 최소 주문금액 체크: `MIN_ORDER_KRW` (기본 5000)
+- 슬리피지 한도: `MAX_SLIPPAGE_BPS` (기본 30bp)
+- 손절: `STOP_LOSS_PCT` (기본 3%)
+- 일손실 제한: `MAX_DAILY_LOSS_PCT` (기본 5%)
 
-- `src/upbit_backtest.py`
-  - 전략 3종 백테스트
-    1. `sma_cross_20_80` (추세추종)
-    2. `rsi_mean_reversion` (역추세)
-    3. `breakout_k05_trend` (돌파 + 추세필터)
-  - 출력:
-    - `results/all_summary.csv`
-    - `results/KRW_BTC_summary.csv` 등 마켓별 CSV
+## 자동 선택
+- 코인 자동 선택: `MARKET=AUTO` (results/all_summary.csv 기준 최고 수익률 마켓)
+- 전략 자동 선택: `STRATEGY=AUTO` (선택된 마켓 기준 최고 수익률 전략)
 
-- `src/auto_invest_template.py`
-  - 실거래 전 단계용 자동투자 템플릿 (paper mode 기본)
-  - SMA 시그널 기반으로 BUY/SELL 로그 출력
+> 즉, 원하면 코인도 자동/전략도 자동으로 가능합니다.
 
-## 실행 방법
-
+## 백테스트
 ```bash
 python src/upbit_backtest.py --markets KRW-BTC KRW-ETH KRW-XRP --count 600 --unit 60 --out results
 ```
 
-## 최근 실행 결과 (2026-05-13 UTC)
+## 실행 (PAPER)
+```bash
+MARKET=AUTO \
+STRATEGY=AUTO \
+REAL_TRADING=false \
+KRW_PER_ORDER=50000 \
+MIN_ORDER_KRW=5000 \
+MAX_SLIPPAGE_BPS=30 \
+STOP_LOSS_PCT=3.0 \
+MAX_DAILY_LOSS_PCT=5.0 \
+python src/upbit_live_trader.py
+```
 
-> 이 실행 환경은 외부망 제한(프록시 403)으로 업비트 API 직접 호출이 불가해,
-> `synthetic_candles()` 대체 데이터로 백테스트가 수행되었습니다.
+## 실행 (REAL)
+```bash
+UPBIT_ACCESS_KEY=... \
+UPBIT_SECRET_KEY=... \
+MARKET=AUTO \
+STRATEGY=AUTO \
+REAL_TRADING=true \
+KRW_PER_ORDER=50000 \
+MIN_ORDER_KRW=5000 \
+MAX_SLIPPAGE_BPS=30 \
+STOP_LOSS_PCT=3.0 \
+MAX_DAILY_LOSS_PCT=5.0 \
+python src/upbit_live_trader.py
+```
 
-상위 전략(마켓별)은 공통으로 `breakout_k05_trend`가 선택되었습니다.
-
-- KRW-BTC
-  - Total Return: `58.96%`
-  - MDD: `-0.14%`
-  - Win Rate: `96.30%`
-- KRW-ETH
-  - Total Return: `58.96%`
-- KRW-XRP
-  - Total Return: `58.96%`
-
-## 자동투자 적용 가이드
-
-1. 백테스트 기간 확대: `--count` 값을 늘려 최소 수개월~수년 검증
-2. 수수료/슬리피지 보수적 반영
-3. 워크포워드 검증 (학습 구간 / 검증 구간 분리)
-4. paper trading 최소 2~4주
-5. 실거래 전 리스크 룰 필수
-   - 1회 주문 리스크 제한
-   - 일중 손실 한도
-   - 최대 포지션 크기 제한
+## Synology NAS Container Manager 기준
+1. 프로젝트를 NAS에 올리고(예: `/volume1/docker/coin_trader`) 이미지 생성 또는 Python 베이스 이미지 사용.
+2. Container Manager > 프로젝트/컨테이너 생성 시 작업 디렉토리를 `/workspace/coin_trader`로 마운트.
+3. 환경변수에 위 실행 예시 값 입력 (`UPBIT_ACCESS_KEY`, `UPBIT_SECRET_KEY`, `REAL_TRADING` 등).
+4. 시작 명령:
+   - 백테스트: `python src/upbit_backtest.py --markets KRW-BTC KRW-ETH KRW-XRP --count 600 --unit 60 --out results`
+   - 자동매매: `python src/upbit_live_trader.py`
+5. 재시작 정책을 `always`로 설정하고, 로그에서 `DAILY LOSS LIMIT HIT`, `SKIP high slippage` 메시지 확인.
 
 ## 주의
+- 투자 자문 아님. 실거래 전 PAPER 모드로 충분히 검증하세요.
 
-- 이 코드는 투자 자문이 아닙니다.
-- 실거래 주문 API(인증/서명/에러처리/재시도)는 템플릿에 의도적으로 미포함이며,
-  반드시 별도 안전장치를 추가한 뒤 사용하세요.
+
+## Synology Container Manager 빠른 배포 (docker-compose)
+1. 이 저장소를 NAS 폴더(예: `/volume1/docker/coin_trader`)에 업로드.
+2. Container Manager → **프로젝트** → **생성** → 폴더 선택.
+3. `docker-compose.yml` 자동 인식 후 환경변수 수정:
+   - 실거래면 `REAL_TRADING=true`
+   - `UPBIT_ACCESS_KEY`, `UPBIT_SECRET_KEY` 입력
+4. **배포** 클릭.
+5. 로그에서 `BOOT`, `SKIP high slippage`, `DAILY LOSS LIMIT HIT` 메시지 확인.
+
+### 백테스트 컨테이너 실행
+- compose의 `backtest` 서비스는 `tools` profile로 분리되어 있습니다.
+- 필요 시 터미널에서:
+```bash
+docker compose --profile tools up backtest
+```

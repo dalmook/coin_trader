@@ -41,7 +41,7 @@ def fetch_candles(market: str, unit: int, count: int):
             with urlopen(url, timeout=15) as res:
                 data = json.loads(res.read().decode("utf-8"))
         except URLError:
-            return synthetic_candles(count, unit)
+            return synthetic_candles(count, unit, market)
         if not data:
             break
         rows.extend(data)
@@ -154,14 +154,18 @@ class Row:
     sharpe: float
 
 
-def synthetic_candles(count, unit):
+def synthetic_candles(count, unit, market):
     now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
-    price = 100_000_000.0
+    market_seed = sum(ord(c) for c in market)
+    price = 80_000_000.0 + (market_seed % 30_000_000)
     out = []
     for i in range(count):
         t = now - timedelta(minutes=unit*(count-i))
-        drift = 0.00015
-        shock = math.sin(i/17)*0.003 + math.cos(i/9)*0.002
+        drift = 0.0001 + ((market_seed % 17) - 8) * 0.00001
+        phase1 = (market_seed % 19) / 10
+        phase2 = (market_seed % 23) / 10
+        vol = 0.002 + (market_seed % 7) * 0.00025
+        shock = math.sin(i / (13 + (market_seed % 5)) + phase1) * vol + math.cos(i / (7 + (market_seed % 3)) + phase2) * (vol * 0.65)
         ret = drift + shock
         open_p = price
         close_p = price * (1 + ret)
