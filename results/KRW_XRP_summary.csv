@@ -1,0 +1,4 @@
+strategy,market,trades,total_return_pct,cagr_pct,max_drawdown_pct,win_rate_pct,sharpe
+sma_cross_20_80,KRW-XRP,0,0.0,0.0,0.0,0.0,0.0
+rsi_mean_reversion,KRW-XRP,0,0.0,0.0,0.0,0.0,0.0
+breakout_k05_trend,KRW-XRP,1,0.11092053374024413,17.891853574703443,-0.04999999999999449,80.0,11.1550894053418

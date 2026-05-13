@@ -1,0 +1,4 @@
+strategy,market,trades,total_return_pct,cagr_pct,max_drawdown_pct,win_rate_pct,sharpe
+sma_cross_20_80,KRW-ETH,0,0.0,0.0,0.0,0.0,0.0
+rsi_mean_reversion,KRW-ETH,0,0.0,0.0,0.0,0.0,0.0
+breakout_k05_trend,KRW-ETH,1,0.7852862881140066,219.43904620432482,-0.04999999999999449,85.71428571428571,25.769242883094485
