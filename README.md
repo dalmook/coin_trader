@@ -77,3 +77,23 @@ python src/upbit_live_trader.py
 ```bash
 docker compose --profile tools up backtest
 ```
+
+
+## 텔레그램 일일 리포트 (KST 오전 9시 기본)
+환경변수 추가:
+- `TELEGRAM_BOT_TOKEN` : 텔레그램 봇 토큰
+- `TELEGRAM_CHAT_ID` : 받을 채팅 ID
+- `REPORT_HOUR_KST` : 리포트 발송 시각(기본 9)
+
+리포트 내용:
+- 당일 매매 횟수
+- 당일 손익(%)
+- 누적 손익(%)
+- 현재 포지션
+- 현재가
+- 일손실 제한값
+
+예시:
+```bash
+TELEGRAM_BOT_TOKEN=xxxx TELEGRAM_CHAT_ID=123456789 REPORT_HOUR_KST=9 python src/upbit_live_trader.py
+```

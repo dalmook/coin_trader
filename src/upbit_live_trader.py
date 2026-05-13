@@ -91,6 +91,28 @@ def get_asset_balance(access, secret, currency):
         if row.get("currency")==currency: return float(row.get("balance","0") or 0)
     return 0.0
 
+
+
+def send_telegram(token: str, chat_id: str, text: str):
+    if not token or not chat_id:
+        return
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    req = Request(url, data=json.dumps({"chat_id": chat_id, "text": text}).encode(), method="POST", headers={"Content-Type": "application/json"})
+    with urlopen(req, timeout=15) as r:
+        return json.loads(r.read().decode())
+
+
+def now_kst():
+    return datetime.now(timezone.utc).timestamp() + 9*3600
+
+
+def kst_hour_min(dt_utc):
+    ts = dt_utc.timestamp() + 9*3600
+    h = int((ts % 86400)//3600)
+    m = int((ts % 3600)//60)
+    d = int(ts // 86400)
+    return d, h, m
+
 @dataclass
 class Config:
     market: str = os.getenv("MARKET", "AUTO")
@@ -103,6 +125,9 @@ class Config:
     max_slippage_bps: float = float(os.getenv("MAX_SLIPPAGE_BPS", "30"))
     stop_loss_pct: float = float(os.getenv("STOP_LOSS_PCT", "3.0"))
     max_daily_loss_pct: float = float(os.getenv("MAX_DAILY_LOSS_PCT", "5.0"))
+    telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    report_hour_kst: int = int(os.getenv("REPORT_HOUR_KST", "9"))
 
 
 def run():
@@ -112,12 +137,38 @@ def run():
     base, coin = market.split("-")
     print(f"[BOOT] market={market} strategy={strategy} mode={'REAL' if cfg.real else 'PAPER'}")
 
-    pos=0; entry_price=0.0; realized_today=0.0; day=datetime.now(timezone.utc).date()
+    pos=0; entry_price=0.0; realized_today=0.0; cumulative_pnl=0.0; day=datetime.now(timezone.utc).date()
+    trades_today=[]
+    last_report_day=None
     while True:
         now_dt=datetime.now(timezone.utc)
-        if now_dt.date()!=day: day=now_dt.date(); realized_today=0.0
+        if now_dt.date()!=day:
+            day=now_dt.date(); realized_today=0.0; trades_today=[]
         if realized_today <= -cfg.max_daily_loss_pct:
             print(f"[{now_dt.isoformat()}] DAILY LOSS LIMIT HIT {realized_today:.2f}% <= -{cfg.max_daily_loss_pct}%"); time.sleep(cfg.interval_sec); continue
+
+        kday, kh, km = kst_hour_min(now_dt)
+        if kh == cfg.report_hour_kst and km < 2 and last_report_day != kday:
+            ticker = get_ticker(market)
+            live_price = float(ticker["trade_price"])
+            msg = (
+                f"📊 Daily Report ({market})\n"
+                f"- Mode: {'REAL' if cfg.real else 'PAPER'}\n"
+                f"- Strategy: {strategy}\n"
+                f"- KST Report Hour: {cfg.report_hour_kst}:00\n"
+                f"- Trades Today: {len(trades_today)}\n"
+                f"- Today PnL: {realized_today:.2f}%\n"
+                f"- Cumulative PnL: {cumulative_pnl:.2f}%\n"
+                f"- Position: {pos}\n"
+                f"- Last Price: {live_price:.0f}\n"
+                f"- Max Daily Loss Limit: -{cfg.max_daily_loss_pct}%"
+            )
+            try:
+                send_telegram(cfg.telegram_bot_token, cfg.telegram_chat_id, msg)
+                print(f"[{now_dt.isoformat()}] TELEGRAM daily report sent")
+            except Exception as e:
+                print(f"[{now_dt.isoformat()}] TELEGRAM send failed: {e}")
+            last_report_day = kday
 
         candles=get_candles(market,120,cfg.unit); last_close=candles[-1]["trade_price"]; sig=get_signal(strategy,candles,pos)
         ticker=get_ticker(market); trade_price=float(ticker["trade_price"])
@@ -142,6 +193,8 @@ def run():
         elif sig==0 and pos==1:
             pnl_pct=(trade_price/entry_price-1)*100 if entry_price>0 else 0
             realized_today += pnl_pct
+            cumulative_pnl += pnl_pct
+            trades_today.append({"time": now_dt.isoformat(), "market": market, "strategy": strategy, "pnl_pct": pnl_pct, "price": trade_price})
             if cfg.real:
                 if not access or not secret: raise RuntimeError("REAL_TRADING=true but API keys missing")
                 vol=get_asset_balance(access,secret,coin)

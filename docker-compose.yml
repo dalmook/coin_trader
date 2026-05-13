@@ -27,6 +27,11 @@ services:
       STOP_LOSS_PCT: "3.0"
       MAX_DAILY_LOSS_PCT: "5.0"
 
+      # ===== 텔레그램 리포트 =====
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_CHAT_ID: ""
+      REPORT_HOUR_KST: "9"
+
     volumes:
       - ./:/app
     restart: always
