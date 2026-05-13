@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  upbit-trader:
+    build: .
+    container_name: upbit-trader
+    working_dir: /app
+    command: ["python", "src/upbit_live_trader.py"]
+    environment:
+      # ===== 필수(실거래 시) =====
+      UPBIT_ACCESS_KEY: ""
+      UPBIT_SECRET_KEY: ""
+
+      # ===== 실행 모드 =====
+      REAL_TRADING: "false"        # true 면 실거래
+      MARKET: "AUTO"               # AUTO 또는 KRW-BTC/KRW-ETH ...
+      STRATEGY: "AUTO"             # AUTO 또는 sma_cross_20_80 / rsi_mean_reversion / breakout_k05_trend
+
+      # ===== 주문/루프 =====
+      KRW_PER_ORDER: "50000"
+      CANDLE_UNIT: "60"
+      LOOP_SECONDS: "60"
+
+      # ===== 리스크 가드 =====
+      MIN_ORDER_KRW: "5000"
+      MAX_SLIPPAGE_BPS: "30"
+      STOP_LOSS_PCT: "3.0"
+      MAX_DAILY_LOSS_PCT: "5.0"
+
+      # ===== 텔레그램 리포트 =====
+      TELEGRAM_BOT_TOKEN: ""
+      TELEGRAM_CHAT_ID: ""
+      REPORT_HOUR_KST: "9"
+
+    volumes:
+      - ./:/app
+    restart: always
+
+  backtest:
+    build: .
+    container_name: upbit-backtest
+    working_dir: /app
+    command: ["python", "src/upbit_backtest.py", "--markets", "KRW-BTC", "KRW-ETH", "KRW-XRP", "--count", "600", "--unit", "60", "--out", "results"]
+    volumes:
+      - ./:/app
+    profiles: ["tools"]

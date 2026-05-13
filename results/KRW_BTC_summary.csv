@@ -1,0 +1,4 @@
+strategy,market,trades,total_return_pct,cagr_pct,max_drawdown_pct,win_rate_pct,sharpe
+sma_cross_20_80,KRW-BTC,0,0.0,0.0,0.0,0.0,0.0
+rsi_mean_reversion,KRW-BTC,1,-4.445254566114832,-99.88306011933663,-4.445254566114832,0.0,-76.22488474385965
+breakout_k05_trend,KRW-BTC,0,0.0,0.0,0.0,0.0,0.0
