@@ -1,0 +1,27 @@
+{
+  "cumulative_pnl": -6.8096203998840865,
+  "day_kst": "2026-05-18",
+  "entry_price": 0.0,
+  "last_report_day": 20591,
+  "market": "KRW-ELF",
+  "pos": 0,
+  "realized_today": -6.8096203998840865,
+  "strategy": "bb_reversion_20_2",
+  "trades_today": [
+    {
+      "market": "KRW-ELF",
+      "pnl_pct": -3.361344537815125,
+      "price": 115.0,
+      "strategy": "bb_reversion_20_2",
+      "time": "2026-05-17T23:38:31.816137+00:00"
+    },
+    {
+      "market": "KRW-ELF",
+      "pnl_pct": -3.4482758620689613,
+      "price": 112.0,
+      "strategy": "bb_reversion_20_2",
+      "time": "2026-05-18T07:40:06.403927+00:00"
+    }
+  ],
+  "updated_at": "2026-05-18T07:40:06.633494+00:00"
+}

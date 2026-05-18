@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  upbit-trader:
+    build: .
+    container_name: upbit-trader
+    working_dir: /app
+    command: ["python", "src/upbit_live_trader.py"]
+    environment:
+      # ===== 필수(실거래 시) =====
+      UPBIT_ACCESS_KEY: ""
+      UPBIT_SECRET_KEY: ""
+
+      # ===== 실행 모드 =====
+      REAL_TRADING: "true"
+      MARKET: "AUTO"
+      STRATEGY: "AUTO"
+
+      # ===== 주문/루프 =====
+      KRW_PER_ORDER: "500000"
+      CANDLE_UNIT: "60"
+      LOOP_SECONDS: "60"
+
+      # ===== 리스크 가드 =====
+      MIN_ORDER_KRW: "5000"
+      MAX_SLIPPAGE_BPS: "30"
+      STOP_LOSS_PCT: "3.0"
+      MAX_DAILY_LOSS_PCT: "5.0"
+
+      # ===== 텔레그램 리포트 =====
+      TELEGRAM_BOT_TOKEN: "8633941325:"
+      TELEGRAM_CHAT_ID: ""
+      REPORT_HOUR_KST: "8"
+
+      # ===== 재선정(백테스트 기반) =====
+      RESELECT_INTERVAL_MIN: "1440"
+      RESELECT_BACKTEST_COUNT: "3000"
+      RESELECT_MARKETS: "AUTO"
+      RESELECT_TOP_MARKETS: "30"
+      RESELECT_MIN_HISTORY: "3000"
+      SELECT_MIN_TRADES: "10"
+      SELECT_MAX_MDD_PCT: "15"
+      SELECT_MIN_SHARPE: "0.5"
+
+    volumes:
+      - ./:/app
+    restart: always
+
+  backtest:
+    build: .
+    container_name: upbit-backtest
+    working_dir: /app
+    command: ["python", "src/upbit_backtest.py", "--markets", "AUTO", "--count", "3000", "--unit", "60", "--out", "results", "--top-markets", "30", "--min-history", "3000"]
+    volumes:
+      - ./:/app
+    profiles: ["tools"]
